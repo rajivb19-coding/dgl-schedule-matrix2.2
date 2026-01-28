@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Masonic Matrix V6.7</title>
+    
+    <meta name="theme-color" content="#1a237e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Masonic Matrix">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a237e; --secondary: #283593; --accent: #FFD700;
+            --bg: #f4f6f8; --surface: #ffffff; --text-main: #1f2937; --text-muted: #6b7280;
+            --scottish: #2e7d32; --english: #1565c0; --princehall: #6a1b9a;
+            --scarlet: #c62828; --black: #212121; --social: #fbc02d;
+            --holiday-bg: #2d2d2d; --holiday-text: #FFD700;
+            --sunday-bg: #e0e0e0; --install-bg: #fff9c4;
+            /* Safe Area Variables for Notch Phones */
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding-bottom: calc(80px + var(--safe-bottom)); /* Extra space for swipe bar */
+            overscroll-behavior-y: none; /* Prevents "bounce" effect on pull-to-refresh */
+        }
+
+        /* --- Header --- */
+        .app-header { 
+            position: sticky; top: 0; z-index: 50; 
+            background: var(--primary); color: white; 
+            padding: calc(15px + var(--safe-top)) 15px 15px 15px; /* Pad for status bar */
+            text-align: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+        }
+        .nav-controls { display: flex; justify-content: center; align-items: center; gap: 20px; }
+        .btn-nav { 
+            background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); 
+            color: white; padding: 10px 20px; border-radius: 30px; 
+            font-weight: 700; cursor: pointer; min-height: 44px; /* Touch friendly */
+            display: flex; align-items: center;
+        }
+        .app-title { font-size: 1.1rem; font-weight: 700; min-width: 140px; }
+
+        /* --- Calendar Feed --- */
+        .container { max-width: 600px; margin: 20px auto; padding: 0 12px; }
+        .day-row {
+            background: var(--surface); border-radius: 12px; margin-bottom: 12px;
+            display: grid; grid-template-columns: 75px 1fr;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03); overflow: hidden; border-left: 4px solid transparent;
+        }
+        .day-row.is-sunday { background: var(--sunday-bg); border-top: 6px solid #bdbdbd; margin-top: 25px; }
+        .day-row.is-holiday { background: var(--holiday-bg); border: 1px solid #000; }
+        .day-row.is-installation { background: var(--install-bg); border-left-color: var(--accent); }
+
+        .date-col { 
+            padding: 10px; text-align: center; border-right: 1px solid #eee; 
+            display: flex; flex-direction: column; justify-content: center; 
+        }
+        .date-num { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+        .date-day { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-top: 4px; font-weight: 600; }
+        .is-holiday .date-col { color: white; border-right-color: #444; }
+
+        /* Horizontal Layout */
+        .event-col { 
+            padding: 10px; display: flex; flex-direction: row; 
+            flex-wrap: wrap; gap: 6px; align-items: center; 
+        }
+        .event-chip { 
+            padding: 8px 12px; border-radius: 6px; 
+            color: white; font-size: 0.85rem; font-weight: 500; 
+            cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            user-select: none; /* Mobile feel */
+        }
+        .event-chip:active { opacity: 0.7; transform: scale(0.98); }
+        .holiday-block { width: 100%; color: var(--holiday-text); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; margin-bottom: 4px; }
+
+        .bg-scottish { background: var(--scottish); } .bg-english { background: var(--english); }
+        .bg-princehall { background: var(--princehall); } .bg-scarlet { background: var(--scarlet); }
+        .bg-black { background: var(--black); } .bg-social { background: var(--social); color: black; }
+
+        /* --- Admin Panel --- */
+        .fab { 
+            position: fixed; bottom: calc(25px + var(--safe-bottom)); right: 25px; 
+            background: var(--primary); color: white; width: 56px; height: 56px; 
+            border-radius: 50%; border: none; font-size: 28px; 
+            cursor: pointer; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #adminPanel { 
+            display: none; position: fixed; inset: 0; background: white; z-index: 200; 
+            overflow-y: auto; padding: 20px; animation: slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+            padding-bottom: 100px; /* Space for scrolling past inputs */
+        }
+        @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+        /* Font size 16px prevents iOS Zoom on focus */
+        input, select { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; 
+            font-size: 16px; background: #f9f9f9; -webkit-appearance: none;
+        }
+
+        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+        .month-btn { 
+            background: #eee; border: 2px solid #ddd; padding: 12px 2px; 
+            text-align: center; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; 
+        }
+        .month-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 1.1rem; margin-top: 10px; }
+        
+        .admin-list { margin-top: 15px; border: 1px solid #eee; border-radius: 10px; max-height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .admin-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+        
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-card { 
+            background: white; width: 85%; max-width: 360px; padding: 25px; 
+            border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+            animation: popIn 0.2s ease-out;
+        }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<header class="app-header">
+    <div class="nav-controls">
+        <button class="btn-nav" onclick="moveMonth(-1)">Prev</button>
+        <div class="app-title" id="monthDisplay">Loading...</div>
+        <button class="btn-nav" onclick="moveMonth(1)">Next</button>
+    </div>
+</header>
+
+<div class="container" id="calendarFeed"></div>
+<button class="fab" onclick="unlockAdmin()">+</button>
+
+<div id="adminPanel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="margin:0">Matrix Admin</h2>
+        <button style="border:none; background:#eee; width:40px; height:40px; border-radius:50%; font-size:1.5rem; display:flex; align-items:center; justify-content:center;" onclick="closeAdmin()">×</button>
+    </div>
+    
+    <div class="form-group">
+        <label>Constitution</label>
+        <select id="fType" onchange="updateHostDropdown()">
+            <option value="scottish">Scottish Constitution</option>
+            <option value="english">English Constitution</option>
+            <option value="princehall">Prince Hall</option>
+            <option value="scarlet">Royal Arch / Scarlet</option>
+            <option value="black">Higher Orders / Black</option>
+            <option value="social">Social Event</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Host Body</label>
+        <select id="fHostSelect"></select>
+        <input type="text" id="fHostText" style="display:none;" placeholder="Enter Custom Name">
+    </div>
+
+    <div class="form-group">
+        <label>Category</label>
+        <select id="fCategory">
+            <option value="regular">Regular Meeting</option>
+            <option value="installation">Installation / Special</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Location</label>
+        <select id="fLoc">
+            <option>Picadilly Street, Port of Spain</option>
+            <option>Herbert Street, Port of Spain</option>
+            <option>Alexandra Street, Port of Spain</option>
+            <option>Pembroke Street, Port of Spain</option>
+            <option>Ruth Avenue, San Fernando</option>
+            <option>Hosein Street, Arima</option>
+            <option>Lambeau, Tobago</option>
+            <option>Radisson Hotel, Grenada</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Select Months</label>
+        <div class="month-grid" id="monthGrid"></div>
+    </div>
+
+    <div class="form-group">
+        <label>Meeting Pattern</label>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <select id="fFreq"><option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option><option value="4">4th</option><option value="last">Last</option></select>
+            <select id="fDay"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select>
+        </div>
+        <div style="background:#f5f5f5; padding:15px; border-radius:12px; border:1px solid #ddd;">
+            <label style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                <input type="checkbox" id="fRecurring" style="width:24px; height:24px;">
+                Repeat Yearly (Until 2031)
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; margin:0;">
+                Start Year: <input type="number" id="fYear" value="2025" style="width:80px; padding:8px;">
+            </label>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Start Time</label>
+        <input type="time" id="fTime" value="18:00">
+    </div>
+
+    <button class="btn-primary" onclick="bulkAdd()">Add To Calendar</button>
+    
+    <div style="margin-top:40px;">
+        <h3 style="border-bottom:1px solid #eee; padding-bottom:10px;">Database Search</h3>
+        <input type="text" id="adminSearch" class="search-box" placeholder="Search (Name or 2025-03...)" onkeyup="updateRecentList()">
+        <div id="recentList" class="admin-list"></div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;">
+            <button onclick="downloadBackup()" style="padding:15px; background:#455a64; color:white; border:none; border-radius:12px; font-weight:600;">Export</button>
+            <button onclick="document.getElementById('importFile').click()" style="padding:15px; background:#2e7d32; color:white; border:none; border-radius:12px; font-weight:600;">Import</button>
+        </div>
+        <input type="file" id="importFile" style="display:none" onchange="importBackup(event)">
+    </div>
+</div>
+
+<div class="modal-overlay" id="eventModal" onclick="if(event.target===this) closeModal()">
+    <div class="modal-card">
+        <h3 id="mTitle" style="color:var(--primary); margin-top:0; border-bottom:2px solid #eee; padding-bottom:15px;">Meeting Details</h3>
+        <p style="font-size:1.2rem; margin:20px 0; line-height:1.4;">🏛️ <strong id="mHost"></strong></p>
+        <p style="color:#555; margin:10px 0;">📍 <span id="mLoc"></span></p>
+        <p style="color:#555; margin:10px 0;">⏰ <span id="mTime"></span></p>
+        <button class="btn-primary" onclick="closeModal()" style="margin-top:20px;">Close</button>
+    </div>
+</div>
+
+<script>
+    const hostData = {
+        scottish: ["DGLTTG", "Lodge United Brothers 251", "Lodge Eastern Star 368", "Lodge Rosslyn 596", "Lodge Arima 899", "Lodge Alexandra 1044", "Lodge Caribbean Light 1391", "Lodge Royalian 1605", "Lodge Tobago Kilwinning 1643", "Lodge Felicity 1681", "Lodge Trinity 1733", "Lodge Hesperus 1738", "Lodge Saint Andrew 1794", "Lodge Bi-Centennial 1812"],
+        english: ["District Grand Lodge of T&T EC", "Royal Philanthropic Lodge 405", "Royal Prince of Wales Lodge 867", "Royal Connaught Lodge 3266", "St Andrew Lodge 3969", "Naparima Lodge 7108", "T&T Masters Lodge 8057", "Daniel Hart Lodge 9028", "Arthur Emlyn Lodge 9742"],
+        princehall: ["Alpha Lodge 20", "Cosmopolitan Lodge 21", "Dan Ruben Lodge 33"],
+        scarlet: ["DGRAC of T&T SC", "Trinidad Kilwinning RAC 126", "Harmony RAC 184", "The Kings RAC 314", "Unity RAC 610", "Phoenix RAC 694", "Trinidad Harodim RAC 853", "Mount Sinai RAC 874", "Trinidad Kilwinning RAM 126", "Harmony RAM 184", "The King's RAM 314", "Unity RAM 610", "Phoenix RAM 694", "Trinidad Kilwinning Cryptic 126", "Harmony Cryptic 184", "The King's Cryptic 314", "Unity Cryptic 610", "Phoenix Cryptic 694", "Royal Prince of Wales RAC 867", "RPW Mark Master Masons 1828", "Southern Mark Master Masons 1897", "RPW RAM 1828", "RPW Royal and Select Masters 281", "RPW Allied Masonic Degrees 227"],
+        black: ["New Century Conclave 453", "United Brothers Conclave 454", "Trinidad Consistory 86", "Priory of Trinidad Kilwinning 18", "Priory of Phoenix 175", "Trinidad Kilwinning Sovereign Chapter 5", "Dr. James A. Waterman Sov Chapter 236", "Phoenix Sov Chapter 238", "Trinidad Kilwinning Sov Council 5"],
+        social: []
+    };
+
+    const typePriority = ["scottish", "english", "princehall", "scarlet", "black", "social"];
+    let events = JSON.parse(localStorage.getItem('masonicEvents')) || [];
+    let viewDate = new Date();
+    let selectedMonths = [];
+
+    const movableHolidays = {
+        2025: { eid: "03-31", corpus: "06-19", divali: "10-20" },
+        2026: { eid: "03-20", corpus: "06-04", divali: "11-08" },
+        2027: { eid: "03-09", corpus: "05-27", divali: "10-29" },
+        2028: { eid: "02-26", corpus: "06-15", divali: "10-17" },
+        2029: { eid: "02-14", corpus: "05-31", divali: "11-05" },
+        2030: { eid: "02-04", corpus: "06-20", divali: "10-26" },
+        2031: { eid: "01-24", corpus: "06-12", divali: "11-14" }
+    };
+
+    function getHolidays(year) {
+        const fixed = { "01-01": "New Year's Day", "03-30": "Spiritual Baptist Liberation Day", "05-30": "Indian Arrival Day", "06-19": "Labour Day", "08-01": "Emancipation Day", "08-31": "Independence Day", "09-24": "Republic Day", "12-25": "Christmas Day", "12-26": "Boxing Day" };
+        let allHolidays = { ...fixed };
+        if (movableHolidays[year]) { allHolidays[movableHolidays[year].eid] = "Eid-ul-Fitr"; allHolidays[movableHolidays[year].corpus] = "Corpus Christi"; allHolidays[movableHolidays[year].divali] = "Divali"; }
+        let finalHolidays = {};
+        for (let dateStr in allHolidays) {
+            finalHolidays[dateStr] = allHolidays[dateStr];
+            let d = new Date(year + "-" + dateStr + "T00:00:00");
+            if (d.getDay() === 0) {
+                let mon = new Date(d); mon.setDate(d.getDate() + 1);
+                let monIso = mon.toISOString().split('T')[0].substring(5);
+                finalHolidays[monIso] = allHolidays[dateStr] + " (Observed)";
+            }
+        }
+        let res = {};
+        for(let k in finalHolidays) res[`${year}-${k}`] = finalHolidays[k];
+        return res;
+    }
+
+    function render() {
+        const feed = document.getElementById('calendarFeed');
+        feed.innerHTML = '';
+        const y = viewDate.getFullYear(), m = viewDate.getMonth();
+        document.getElementById('monthDisplay').textContent = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const holidays = getHolidays(y);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dateObj = new Date(y, m, d);
+            const hol = holidays[iso];
+            
+            const dayEvents = events.filter(e => e.date === iso).sort((a,b) => {
+                const rankA = typePriority.indexOf(a.type);
+                const rankB = typePriority.indexOf(b.type);
+                if (rankA !== rankB) return rankA - rankB;
+                return a.time.localeCompare(b.time);
+            });
+
+            const isSun = dateObj.getDay() === 0;
+            const isInstall = dayEvents.some(e => e.category === 'installation');
+
+            const row = document.createElement('div');
+            row.className = `day-row ${isSun?'is-sunday':''} ${hol?'is-holiday':''} ${isInstall?'is-installation':''}`;
+            row.innerHTML = `
+                <div class="date-col">
+                    <span class="date-num">${d}</span>
+                    <span class="date-day">${dateObj.toLocaleString('default',{weekday:'short'})}</span>
+                </div>
+                <div class="event-col" id="c-${iso}">
+                    ${hol ? `<div class="holiday-block">⛔ ${hol}</div>` : ''}
+                </div>`;
+            feed.appendChild(row);
+
+            dayEvents.forEach(e => {
+                const chip = document.createElement('div');
+                chip.className = `event-chip bg-${e.type}`;
+                chip.innerHTML = `<span>${e.host}</span>`;
+                if(e.category === 'installation') {
+                    chip.style.fontWeight = '900';
+                    chip.style.letterSpacing = '0.3px';
+                }
+                chip.onclick = () => openModal(e);
+                document.getElementById(`c-${iso}`).appendChild(chip);
+            });
+        }
+    }
+
+    function initMonthGrid() { const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; document.getElementById('monthGrid').innerHTML = names.map((m, i) => `<div class="month-btn" onclick="toggleMonth(this, ${i})">${m}</div>`).join(''); }
+    function toggleMonth(el, index) { if(selectedMonths.includes(index)) { selectedMonths = selectedMonths.filter(i => i !== index); el.classList.remove('selected'); } else { selectedMonths.push(index); el.classList.add('selected'); } }
+    
+    function bulkAdd() {
+        const type = document.getElementById('fType').value, host = type==='social'?document.getElementById('fHostText').value:document.getElementById('fHostSelect').value;
+        const freq = document.getElementById('fFreq').value, dayW = parseInt(document.getElementById('fDay').value), time = document.getElementById('fTime').value;
+        const loc = document.getElementById('fLoc').value, cat = document.getElementById('fCategory').value, isRecur = document.getElementById('fRecurring').checked, startY = parseInt(document.getElementById('fYear').value);
+        if(!selectedMonths.length || !host) return alert("Select months and host!");
+        const endY = isRecur ? 2031 : startY;
+        let count = 0;
+        for(let y = startY; y <= endY; y++) {
+            selectedMonths.forEach(m => {
+                let dObj = new Date(y, m, 1), days = [];
+                while(dObj.getMonth() === m) { if(dObj.getDay() === dayW) days.push(dObj.getDate()); dObj.setDate(dObj.getDate()+1); }
+                let day = freq==='last'?days[days.length-1]:days[freq-1];
+                if(day) { const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; events.push({ id: Date.now()+Math.random(), date: iso, host, type, loc, time, category: cat }); count++; }
+            });
+        }
+        saveAndReload(); alert(`Added ${count} events.`); closeAdmin();
+    }
+
+    function saveAndReload() { localStorage.setItem('masonicEvents', JSON.stringify(events)); render(); updateRecentList(); }
+    
+    function updateRecentList() {
+        const q = document.getElementById('adminSearch').value.toLowerCase();
+        const list = document.getElementById('recentList');
+        const filtered = events.filter(e => e.host.toLowerCase().includes(q) || e.date.includes(q)).sort((a,b)=>b.id-a.id).slice(0, 50);
+        list.innerHTML = filtered.map(e => `<div class="admin-row"><span><strong>${e.date}</strong> - ${e.host}</span><button style="color:red; background:none; border:none; font-weight:700; cursor:pointer;" onclick="deleteEvent(${e.id})">DEL</button></div>`).join('');
+    }
+
+    function deleteEvent(id) { if(confirm("Delete event?")) { events = events.filter(e => e.id !== id); saveAndReload(); } }
+    function unlockAdmin() { document.getElementById('adminPanel').style.display='block'; updateRecentList(); updateHostDropdown(); }
+    function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
+    function updateHostDropdown() { const t = document.getElementById('fType').value, s=document.getElementById('fHostSelect'), i=document.getElementById('fHostText'); if(t==='social'){s.style.display='none';i.style.display='block';}else{s.style.display='block';i.style.display='none';s.innerHTML=hostData[t].map(h=>`<option>${h}</option>`).join('');}}
+    
+    function openModal(e) { 
+        document.getElementById('mTitle').innerText=e.category==='installation'?'Installation / Special':'Regular Meeting'; 
+        document.getElementById('mHost').innerText=e.host; 
+        document.getElementById('mLoc').innerText=e.loc; 
+        let [hh, mm] = e.time.split(':');
+        document.getElementById('mTime').innerText = `${hh % 12 || 12}:${mm} ${hh >= 12 ? 'PM':'AM'}`;
+        document.getElementById('eventModal').style.display='flex'; 
+    }
+    
+    function closeModal() { document.getElementById('eventModal').style.display='none'; }
+    function downloadBackup() { const blob = new Blob([JSON.stringify(events)], {type:'application/json'}); const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`masonic_matrix_backup.json`; a.click(); }
+    function importBackup(event) { const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); events = [...events, ...imported]; saveAndReload(); alert("Import successful!"); } catch(err) { alert("Invalid backup file."); } }; reader.readAsText(event.target.files[0]); }
+    function moveMonth(n) { viewDate.setMonth(viewDate.getMonth() + n); render(); }
+
+    initMonthGrid();
+    render();
+</script>
+</body>
+</html>
